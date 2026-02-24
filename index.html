@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
-  <title>問安圖產生器｜免費線上早安圖製作工具 v0.0.5</title>
+  <title>問安圖產生器｜免費線上早安圖製作工具 v0.0.7</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,21 +55,20 @@
     }
 
     .page-header {
-      text-align: center;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 16px;
       margin-bottom: 32px;
       padding-top: 16px;
+      flex-wrap: wrap;
     }
 
     .page-header h1 {
       font-size: 2rem;
       font-weight: 700;
       color: var(--color-primary);
-      margin-bottom: 8px;
-    }
-
-    .greeting-banner {
-      color: var(--color-text-light);
-      font-size: 1.1rem;
+      margin-bottom: 0;
     }
 
     .layout {
@@ -370,23 +369,20 @@
     }
     .save-overlay-close:hover { background: var(--color-bg); }
 
-    .footer { 
+    .footer-inline { 
       text-align: center; 
-      margin-top: 48px; 
+      margin-top: 12px; 
       color: var(--color-text-light); 
       font-size: 0.9rem; 
-      border-top: 1px solid var(--color-border); 
-      padding-top: 24px; 
     }
-    .footer a { color: var(--color-primary); text-decoration: none; font-weight: 500; transition: color 0.2s; }
-    .footer a:hover { color: var(--color-primary-dark); text-decoration: underline; }
+    .footer-inline a { color: var(--color-primary); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+    .footer-inline a:hover { color: var(--color-primary-dark); text-decoration: underline; }
   </style>
 </head>
 <body>
 <div class="page">
   <header class="page-header">
     <h1>問安圖產生器</h1>
-    <p class="greeting-banner" id="greeting-banner"></p>
   </header>
 
   <div class="layout">
@@ -453,7 +449,7 @@
           <button class="pill-btn font-btn" data-font="notosans">黑體</button>
           <button class="pill-btn font-btn" data-font="zenmaru">圓體</button>
           <button class="pill-btn font-btn" data-font="jhenghei">微軟正黑</button>
-          <button class="pill-btn font-btn" data-font="hanserif">Han Serif</button>
+          <button class="pill-btn font-btn" data-font="hanserif">思源宋體</button>
         </div>
 
         <div class="option-row">
@@ -529,13 +525,13 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         下載圖片
       </button>
+
+      <div class="footer-inline">
+        <p>v0.0.7 | ©2026 <a href="https://huobest.com/" target="_blank">霍家私塾</a></p>
+      </div>
     </div><!-- /.preview-col -->
 
   </div><!-- /.layout -->
-
-  <footer class="footer">
-    <p>v0.0.5 | ©2026 <a href="https://huobest.com/" target="_blank">霍家私塾</a></p>
-  </footer>
 </div>
 
 <div class="save-overlay" id="save-overlay">
@@ -655,7 +651,6 @@
   const ctx = canvas.getContext('2d');
   const btnDownload = document.getElementById('btn-download');
   const toastEl = document.getElementById('toast');
-  const bannerEl = document.getElementById('greeting-banner');
 
   // ─── Helpers ───
   function clearGreetingActive() {
@@ -663,13 +658,6 @@
   }
   function fillBasic(t) { textInput.value = `${t}！\n${getDateTimeStr()}`; draw(); }
   function fillWisdom(t) { textInput.value = `${t}\n${getDateTimeStr()}`; draw(); } // 移除了「— 一行禪師」後綴
-
-  // ─── Greeting Banner ───
-  (function() {
-    const now = new Date(), hours = now.getHours(), mins = String(now.getMinutes()).padStart(2,'0');
-    const period = hours < 12 ? '上午' : '下午', h12 = hours % 12 || 12;
-    bannerEl.innerHTML = `${getTimeGreeting()}！現在是${period}${h12}點${mins}分<br>為您準備專屬問安圖`;
-  })();
 
   // ─── Greeting Buttons ───
   const autoG = getTimeGreeting();
