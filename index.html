@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
-  <title>問安圖產生器｜免費線上早安圖製作工具 v0.0.4</title>
+  <title>問安圖產生器｜免費線上早安圖製作工具 v0.0.5</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -458,17 +458,15 @@
 
         <div class="option-row">
           <span class="option-label">顏色</span>
+          <!-- 重新排列顏色，並移除黑色、咖啡色與特定藍色 -->
           <div class="color-dot text-color-dot active" data-color="#FFFFFF" style="background:#FFFFFF; border-color:#CCC;"></div>
           <div class="color-dot text-color-dot" data-color="#FFFF00" style="background:#FFFF00"></div>
-          <div class="color-dot text-color-dot" data-color="#FF6B6B" style="background:#FF6B6B"></div>
-          <div class="color-dot text-color-dot" data-color="#333333" style="background:#333333"></div>
           <div class="color-dot text-color-dot" data-color="#FFD700" style="background:#FFD700"></div>
-          <div class="color-dot text-color-dot" data-color="#7FA890" style="background:#7FA890"></div>
-          <div class="color-dot text-color-dot" data-color="#8B6F5C" style="background:#8B6F5C"></div>
-          <div class="color-dot text-color-dot" data-color="#F5D0C5" style="background:#F5D0C5"></div>
           <div class="color-dot text-color-dot" data-color="#FFB89A" style="background:#FFB89A"></div>
+          <div class="color-dot text-color-dot" data-color="#F5D0C5" style="background:#F5D0C5"></div>
+          <div class="color-dot text-color-dot" data-color="#FF6B6B" style="background:#FF6B6B"></div>
           <div class="color-dot text-color-dot" data-color="#C4B7D7" style="background:#C4B7D7"></div>
-          <div class="color-dot text-color-dot" data-color="#5B8AA1" style="background:#5B8AA1"></div>
+          <div class="color-dot text-color-dot" data-color="#7FA890" style="background:#7FA890"></div>
         </div>
 
         <div class="option-row">
@@ -536,7 +534,7 @@
   </div><!-- /.layout -->
 
   <footer class="footer">
-    <p>v0.0.4 | ©2026 <a href="https://huobest.com/" target="_blank">霍家私塾</a></p>
+    <p>v0.0.5 | ©2026 <a href="https://huobest.com/" target="_blank">霍家私塾</a></p>
   </footer>
 </div>
 
@@ -623,7 +621,6 @@
   
   const createCustomSVG = (content) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${content}</svg>`)}`;
   
-  // 按照需求調整順序與更換手繪質感 SVG，並修復了太陽的光芒
   const STICKERS = [
     { id:'sunflower', name:'向日葵', src: createEmojiSVG('🌻'), cat:'flowers', dx:60, dy:620 },
     { id:'butterfly', name:'蝴蝶', src: createEmojiSVG('🦋'), cat:'animals', dx:620, dy:60 },
