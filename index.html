@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+  <title>問安圖產生器｜免費線上早安圖製作工具 v0.0.4</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- 引入 Inter (英數) 與 Noto (中文) 字體 -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&family=LXGW+WenKai+TC:wght@400;700&family=Noto+Serif+TC:wght@400;700&family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* 1. 核心色盤 (Color Palette) */
+      --color-primary: #4A90E2;
+      --color-primary-dark: #3A78C4;
+      --color-primary-light: #EBF3FB;
+      --color-bg: #F5F7FA;
+      --color-surface: #FFFFFF;
+      --color-text: #333333;
+      --color-text-light: #666666;
+      --color-border: #E5E7EB;
+      
+      /* 2. 狀態色彩 (Status Colors) */
+      --color-success: #5AC8A5;
+      --color-error: #F06292;
+      --color-warning: #FFB74D;
+      --color-info: #4FC3F7;
+
+      /* 4. 元件風格 (Components) - 圓角 */
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      
+      /* 4. 元件風格 (Components) - 輕微擴散陰影 */
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      /* 3. 排版與字體 (Typography) */
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+      font-size: 16px;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px; /* 寬鬆舒適的留白 */
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 32px;
+      padding-top: 16px;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 8px;
+    }
+
+    .greeting-banner {
+      color: var(--color-text-light);
+      font-size: 1.1rem;
+    }
+
+    .layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+
+    .controls-col, .preview-col {
+      flex: 1;
+      min-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .preview-col {
+      position: sticky;
+      top: 24px;
+    }
+
+    .step {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .step-label {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--color-text);
+      border-bottom: 2px solid var(--color-bg);
+      padding-bottom: 8px;
+    }
+
+    /* Upload Area */
+    .upload-area {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #FAFAFA;
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--color-primary);
+      background: var(--color-primary-light);
+    }
+    .upload-placeholder svg {
+      width: 48px;
+      height: 48px;
+      color: var(--color-primary);
+      margin-bottom: 12px;
+    }
+    .upload-text { font-weight: 700; font-size: 1.1rem; color: var(--color-text); }
+    .upload-hint { color: var(--color-text-light); font-size: 0.9rem; margin-top: 4px; }
+    #upload-input { display: none; }
+    
+    .upload-area.has-image .upload-placeholder { display: none; }
+    #preview-thumb {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: var(--radius-sm);
+      display: none;
+      margin: 0 auto;
+    }
+    .upload-area.has-image #preview-thumb { display: block; }
+
+    /* Pan Controls */
+    .bg-pan { display: none; margin-top: 16px; text-align: center; }
+    .bg-pan.show { display: block; }
+    .bg-pan-label { font-size: 0.9rem; font-weight: 700; margin-bottom: 8px; display: block; color: var(--color-text); }
+    .pan-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      max-width: 160px;
+      margin: 0 auto;
+    }
+    .pan-btn {
+      padding: 8px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--color-text);
+      transition: all 0.2s;
+    }
+    .pan-btn:hover { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary-light); }
+    .pan-btn.reset { background: var(--color-bg); }
+
+    /* Greetings & Texts */
+    .greeting-sub-label { font-weight: 700; margin-bottom: 12px; color: var(--color-text-light); font-size: 0.95rem; }
+    .greeting-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .greeting-btn, .wisdom-btn {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm); /* 按鈕 8px 圓角 */
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--color-text);
+      transition: all 0.2s;
+    }
+    .greeting-btn:hover, .wisdom-btn:hover { 
+      border-color: var(--color-primary); 
+      color: var(--color-primary); 
+    }
+    .greeting-btn.active, .wisdom-btn.active {
+      background: var(--color-primary);
+      color: var(--color-surface);
+      border-color: var(--color-primary);
+      font-weight: 500;
+    }
+    
+    /* 隨機產生按鈕風格 */
+    .random-btn { 
+      background: linear-gradient(135deg, var(--color-info) 0%, var(--color-primary) 100%); 
+      color: white; 
+      border: none; 
+      font-weight: 500;
+    }
+    .random-btn:hover { opacity: 0.9; color: white; border: none; box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3); }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 16px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      resize: vertical;
+      font-family: inherit;
+      font-size: 1rem;
+      color: var(--color-text);
+      background: var(--color-surface);
+      transition: all 0.2s;
+    }
+    textarea:focus { 
+      outline: none; 
+      border-color: var(--color-primary); 
+      box-shadow: 0 0 0 3px var(--color-primary-light); 
+    }
+
+    /* Options */
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .option-label { font-weight: 700; min-width: 50px; color: var(--color-text); }
+    
+    .pill-btn, .pos-btn {
+      padding: 6px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      cursor: pointer;
+      color: var(--color-text);
+      transition: all 0.2s;
+    }
+    .pill-btn:hover, .pos-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .pill-btn.active, .pos-btn.active { 
+      background: var(--color-text); 
+      color: var(--color-surface); 
+      border-color: var(--color-text); 
+    }
+    
+    .pos-wrap { display: flex; gap: 12px; margin-top: 24px; }
+    .pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .pos-btn { border-radius: var(--radius-sm); padding: 6px 12px; font-size: 0.85rem; }
+
+    .color-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .color-dot:hover { transform: scale(1.1); }
+    .color-dot.active { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text); }
+
+    /* Stickers */
+    .sticker-grid {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 12px;
+    }
+    .sticker-item-wrap { text-align: center; }
+    .sticker-thumb {
+      width: 64px;
+      height: 64px;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: var(--color-surface);
+      transition: all 0.2s;
+    }
+    .sticker-thumb img { width: 40px; height: 40px; }
+    .sticker-thumb:hover { border-color: var(--color-primary); }
+    .sticker-thumb.active { border-color: var(--color-primary); background: var(--color-primary-light); }
+    .sticker-name { font-size: 0.85rem; margin-top: 6px; color: var(--color-text-light); }
+    
+    .sticker-controls { display: none; background: var(--color-bg); padding: 16px; border-radius: var(--radius-sm); margin-top: 16px; border: 1px solid var(--color-border); }
+    .sticker-controls.show { display: block; }
+    .sticker-controls-title { font-weight: 700; margin-bottom: 12px; color: var(--color-text); }
+    .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .slider-row input[type="range"] { flex: 1; accent-color: var(--color-primary); }
+
+    /* Canvas */
+    .preview-wrap {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+      border: 1px solid var(--color-border);
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      background: var(--color-primary);
+      color: var(--color-surface);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+    }
+    .btn-primary:hover:not(:disabled) { 
+      background: var(--color-primary-dark); 
+      box-shadow: 0 6px 16px rgba(74, 144, 226, 0.3);
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled { 
+      background: var(--color-border); 
+      cursor: not-allowed; 
+      color: var(--color-text-light); 
+      box-shadow: none;
+      transform: none;
+    }
+    .btn-primary svg { width: 24px; height: 24px; }
+
+    /* Overlays */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(51, 51, 51, 0.9);
+      color: var(--color-surface);
+      padding: 12px 24px;
+      border-radius: 30px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+      opacity: 0;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .save-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+    }
+    .save-overlay.show { display: flex; }
+    .save-overlay-hint { color: var(--color-surface); text-align: center; font-size: 1.2rem; margin-bottom: 24px; font-weight: 500; }
+    #save-overlay-img { max-width: 90%; max-height: 70vh; border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .save-overlay-close {
+      margin-top: 24px; padding: 12px 32px; background: var(--color-surface); border: none; border-radius: var(--radius-sm);
+      font-weight: 700; cursor: pointer; color: var(--color-text); transition: background 0.2s;
+    }
+    .save-overlay-close:hover { background: var(--color-bg); }
+
+    .footer { 
+      text-align: center; 
+      margin-top: 48px; 
+      color: var(--color-text-light); 
+      font-size: 0.9rem; 
+      border-top: 1px solid var(--color-border); 
+      padding-top: 24px; 
+    }
+    .footer a { color: var(--color-primary); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+    .footer a:hover { color: var(--color-primary-dark); text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <header class="page-header">
+    <h1>問安圖產生器</h1>
+    <p class="greeting-banner" id="greeting-banner"></p>
+  </header>
+
+  <div class="layout">
+    <!-- ─── Controls Column ─── -->
+    <div class="controls-col">
+      <!-- Step 1 -->
+      <div class="step">
+        <div class="step-label">1. 選一張背景</div>
+        <div class="upload-area" id="upload-area">
+          <div class="upload-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="var(--radius-sm)"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <div class="upload-text">點這裡選照片</div>
+            <div class="upload-hint">或把圖片拖進來</div>
+          </div>
+          <img id="preview-thumb" alt="背景預覽">
+        </div>
+        <input type="file" id="upload-input" accept="image/*">
+        <div class="bg-pan" id="bg-pan">
+          <span class="bg-pan-label">調整畫面<span style="font-size:0.8rem; color:var(--color-text-light); margin-left:8px; font-weight:400;">多點幾下可以移更多</span></span>
+          <div class="pan-grid">
+            <button class="pan-btn reset" data-dir="top-left">左上</button>
+            <button class="pan-btn" data-dir="up">上</button>
+            <button class="pan-btn reset" data-dir="top-right">右上</button>
+            <button class="pan-btn" data-dir="left">左</button>
+            <button class="pan-btn reset" data-dir="reset">置中</button>
+            <button class="pan-btn" data-dir="right">右</button>
+            <button class="pan-btn reset" data-dir="bot-left">左下</button>
+            <button class="pan-btn" data-dir="down">下</button>
+            <button class="pan-btn reset" data-dir="bot-right">右下</button>
+          </div>
+        </div>
+        
+        <div class="option-row" style="margin-top: 24px;">
+          <span class="option-label">底色</span>
+          <div class="color-dot bg-color-dot active" data-color="#EBF3FB" style="background:#EBF3FB; border-color:#CCC;"></div>
+          <div class="color-dot bg-color-dot" data-color="#F5F7FA" style="background:#F5F7FA; border-color:#CCC;"></div>
+          <div class="color-dot bg-color-dot" data-color="#FFE4E1" style="background:#FFE4E1; border-color:#CCC;"></div>
+          <div class="color-dot bg-color-dot" data-color="#E0FFFF" style="background:#E0FFFF; border-color:#CCC;"></div>
+          <div class="color-dot bg-color-dot" data-color="#FFFACD" style="background:#FFFACD; border-color:#CCC;"></div>
+          <div class="color-dot bg-color-dot" data-color="#E6E6FA" style="background:#E6E6FA; border-color:#CCC;"></div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step">
+        <div class="step-label">2. 選問候語</div>
+
+        <div class="greeting-section">
+          <div class="greeting-sub-label">基本問候</div>
+          <div class="greeting-row" id="basic-row"></div>
+        </div>
+        <div class="greeting-section">
+          <div class="greeting-sub-label">精選語錄</div>
+          <div class="greeting-row" id="wisdom-row"></div>
+        </div>
+
+        <textarea id="text-input" placeholder="在這裡打字..."></textarea>
+
+        <div class="option-row">
+          <span class="option-label">字體</span>
+          <button class="pill-btn font-btn active" data-font="gensenrounded">預設</button>
+          <button class="pill-btn font-btn" data-font="wenkai">楷體</button>
+          <button class="pill-btn font-btn" data-font="notoserif">明體</button>
+          <button class="pill-btn font-btn" data-font="notosans">黑體</button>
+          <button class="pill-btn font-btn" data-font="zenmaru">圓體</button>
+          <button class="pill-btn font-btn" data-font="jhenghei">微軟正黑</button>
+          <button class="pill-btn font-btn" data-font="hanserif">Han Serif</button>
+        </div>
+
+        <div class="option-row">
+          <span class="option-label">顏色</span>
+          <div class="color-dot text-color-dot active" data-color="#FFFFFF" style="background:#FFFFFF; border-color:#CCC;"></div>
+          <div class="color-dot text-color-dot" data-color="#FFFF00" style="background:#FFFF00"></div>
+          <div class="color-dot text-color-dot" data-color="#FF6B6B" style="background:#FF6B6B"></div>
+          <div class="color-dot text-color-dot" data-color="#333333" style="background:#333333"></div>
+          <div class="color-dot text-color-dot" data-color="#FFD700" style="background:#FFD700"></div>
+          <div class="color-dot text-color-dot" data-color="#7FA890" style="background:#7FA890"></div>
+          <div class="color-dot text-color-dot" data-color="#8B6F5C" style="background:#8B6F5C"></div>
+          <div class="color-dot text-color-dot" data-color="#F5D0C5" style="background:#F5D0C5"></div>
+          <div class="color-dot text-color-dot" data-color="#FFB89A" style="background:#FFB89A"></div>
+          <div class="color-dot text-color-dot" data-color="#C4B7D7" style="background:#C4B7D7"></div>
+          <div class="color-dot text-color-dot" data-color="#5B8AA1" style="background:#5B8AA1"></div>
+        </div>
+
+        <div class="option-row">
+          <span class="option-label">大小</span>
+          <button class="pill-btn size-btn" data-size="36">小</button>
+          <button class="pill-btn size-btn active" data-size="52">中</button>
+          <button class="pill-btn size-btn" data-size="72">大</button>
+        </div>
+
+        <div class="pos-wrap">
+          <span class="option-label">位置</span>
+          <div class="pos-grid">
+            <button class="pos-btn" data-pos="tl">左上</button>
+            <button class="pos-btn" data-pos="tc">上</button>
+            <button class="pos-btn" data-pos="tr">右上</button>
+            <button class="pos-btn" data-pos="ml">左</button>
+            <button class="pos-btn active" data-pos="mc">中</button>
+            <button class="pos-btn" data-pos="mr">右</button>
+            <button class="pos-btn" data-pos="bl">左下</button>
+            <button class="pos-btn" data-pos="bc">下</button>
+            <button class="pos-btn" data-pos="br">右下</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Stickers -->
+      <div class="step">
+        <div class="step-label">3. 加個貼圖</div>
+        <div class="greeting-sub-label">點選即可加到圖上，再點一次取消</div>
+        <div class="sticker-grid" id="sticker-grid"></div>
+        <div class="sticker-controls" id="sticker-controls">
+          <div class="sticker-controls-title" id="sticker-controls-title"></div>
+          <div class="slider-row">
+            <span class="slider-label">左右</span>
+            <input type="range" id="sticker-x" min="0" max="700" value="0">
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">上下</span>
+            <input type="range" id="sticker-y" min="0" max="700" value="0">
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">大小</span>
+            <input type="range" id="sticker-size" min="60" max="400" value="130">
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.controls-col -->
+
+    <!-- ─── Preview Column ─── -->
+    <div class="preview-col">
+      <div class="step">
+        <div class="step-label">4. 預覽和下載</div>
+        <div class="preview-wrap">
+          <canvas id="canvas" width="800" height="800"></canvas>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-download" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下載圖片
+      </button>
+    </div><!-- /.preview-col -->
+
+  </div><!-- /.layout -->
+
+  <footer class="footer">
+    <p>v0.0.4 | ©2026 <a href="https://huobest.com/" target="_blank">霍家私塾</a></p>
+  </footer>
+</div>
+
+<div class="save-overlay" id="save-overlay">
+  <div class="save-overlay-hint" id="save-overlay-hint"></div>
+  <img id="save-overlay-img" alt="問安圖">
+  <button class="save-overlay-close" id="save-overlay-close">關閉</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── Time ───
+  function getTimeGreeting() {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) return '早安';
+    if (h >= 12 && h < 18) return '午安';
+    return '晚安';
+  }
+  function getDateTimeStr() {
+    const now = new Date();
+    const m = now.getMonth() + 1, d = now.getDate();
+    const w = ['日','一','二','三','四','五','六'][now.getDay()];
+    const hours = now.getHours(), mins = String(now.getMinutes()).padStart(2,'0');
+    const period = hours < 12 ? '上午' : '下午', h12 = hours % 12 || 12;
+    return `${m}月${d}日 星期${w} ${period}${h12}:${mins}`;
+  }
+
+  // ─── Data ───
+  const BASIC = ['早安','午安','晚安','吃飽了嗎','天冷記得加衣服','記得多喝水'];
+  
+  // 新版所有語錄 (共34條)
+  const NEW_GREETINGS = [
+    '親愛的朋友！記得每天多愛自己一點點呦。',
+    '每天保持好心情，才能充實又快活！',
+    '祝一切安好，順利，幸福',
+    '累了，不要硬撐著',
+    '呼吸吧，你還活著',
+    '生命只存在於當下。失去了當下就是失去了生命',
+    '我們的愛，應該是為我們所愛的人帶來和平和幸福。',
+    '微笑吧，生命是美好的',
+    '種子再飽滿，也需要大地的滋養',
+    '想像力比知識更重要',
+    '只有放棄嘗試的，才是失敗者',
+    '唯有那些異想天開的人，才能完成不可能的事',
+    '人生就像騎單車。想保持平衡就得往前走',
+    '友誼能增進快樂，減少痛苦',
+    '有價值的東西，都需要付出代價',
+    '成功的唯一秘訣——堅持最後一分鐘',
+    '推開窗，擁抱陽光，祝你今天愉快美好',
+    '好好照顧自己，就是今天最好的祝福！',
+    '面對複雜，保持歡喜。加油！',
+    '願你微笑今天，快樂永遠！',
+    '無論身居何處，如果得以偷得一刻安閒坐下來，就當享受那一刻，享受沒有什麼要做，僅僅只是享受你的呼吸。',
+    '完美下午又來到，祝你這天好情緒，工作順利，生活甜美',
+    '忙碌總是理由，牽掛總是主題，默默地祝福你，照顧好自己，一切平安順利！',
+    '一天已經過去一半，說聲下午好，打起精神，盡快完成工作，早點回家吃飯！',
+    '在時光穿梭的日子裡，忙碌的總是身影，多保重身體，願你幸福安康，快樂自在！',
+    '喝杯茶，休息時刻少不了，祝福到，轉換心情更美妙！',
+    '勞累了一天，願我輕輕的一聲問候，伴你輕鬆入夢，晚安！',
+    '安靜欣賞夜景，將喧鬧歸零；慢慢喝杯牛奶，將忙碌歸零。晚安！',
+    '願你的人生平安一程又一程，願所有的美好裝滿您的夢，祝你今晚好夢。',
+    '不要杞人憂天，煩惱並不會減少明天的負擔，卻會失去今天的快樂，晚安！',
+    '讓疲憊的身體慢慢入睡，願你做一個好夢，夢中流星滑落讓你願望成真，晚安！',
+    '如果心倦了就找個時間休息，坦然釋懷了才能好好的放鬆。晚安！',
+    '願皎潔的月光灑滿窗前，願繁星的點點伴你微笑入眠，願輕輕的祝福送你一​​夜香甜。晚安！',
+    '晚霞披著我的問候，給你帶來溫暖；夜風稍著我的牽掛，祝你晚安好夢！'
+  ];
+
+  // 畫面只顯示前 10 條
+  const DISPLAY_GREETINGS = NEW_GREETINGS.slice(0, 10);
+  
+  const FONTS = {
+    gensenrounded: '"Noto Sans TC", sans-serif',
+    wenkai: '"LXGW WenKai TC", serif',
+    notoserif: '"Noto Serif TC", serif',
+    notosans: '"Noto Sans TC", sans-serif',
+    zenmaru: '"Zen Maru Gothic", sans-serif',
+    jhenghei: '"Microsoft JhengHei", "微軟正黑體", "Noto Sans TC", sans-serif',
+    hanserif: '"Noto Serif TC", "Source Han Serif TC", serif',
+  };
+
+  // ─── Sticker Config (使用內嵌 SVG Emoji 與自訂高品質幾何圖形) ───
+  const createEmojiSVG = (emoji) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="80">${emoji}</text></svg>`)}`;
+  
+  const createCustomSVG = (content) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${content}</svg>`)}`;
+  
+  // 按照需求調整順序與更換手繪質感 SVG，並修復了太陽的光芒
+  const STICKERS = [
+    { id:'sunflower', name:'向日葵', src: createEmojiSVG('🌻'), cat:'flowers', dx:60, dy:620 },
+    { id:'butterfly', name:'蝴蝶', src: createEmojiSVG('🦋'), cat:'animals', dx:620, dy:60 },
+    { id:'sun', name:'太陽', src: createCustomSVG(`<circle cx="50" cy="50" r="22" fill="#FFCA28"/><g stroke="#FFCA28" stroke-width="6" stroke-linecap="round"><line x1="50" y1="10" x2="50" y2="18"/><line x1="50" y1="82" x2="50" y2="90"/><line x1="10" y1="50" x2="18" y2="50"/><line x1="82" y1="50" x2="90" y2="50"/><line x1="22" y1="22" x2="28" y2="28"/><line x1="78" y1="78" x2="72" y2="72"/><line x1="22" y1="78" x2="28" y2="72"/><line x1="78" y1="22" x2="72" y2="28"/></g>`), cat:'nature', dx:340, dy:340 },
+    { id:'lotus', name:'蓮花', src: createCustomSVG(`<path d="M50 85 C 15 85 5 50 25 40 C 35 45 40 70 50 85 Z" fill="#81C784"/><path d="M50 85 C 85 85 95 50 75 40 C 65 45 60 70 50 85 Z" fill="#81C784"/><path d="M50 85 C 20 70 15 35 35 25 C 45 35 45 60 50 85 Z" fill="#FF9EBB"/><path d="M50 85 C 80 70 85 35 65 25 C 55 35 55 60 50 85 Z" fill="#FF9EBB"/><path d="M50 85 C 25 80 20 45 30 35 C 40 50 45 65 50 85 Z" fill="#FF7096"/><path d="M50 85 C 75 80 80 45 70 35 C 60 50 55 65 50 85 Z" fill="#FF7096"/><path d="M50 85 C 35 85 35 30 50 15 C 65 30 65 85 50 85 Z" fill="#FF477E"/>`), cat:'flowers', dx:620, dy:620 },
+    { id:'heart', name:'愛心', src: createCustomSVG(`<path d="M 50 30 A 20 20 0 0 0 10 30 C 10 60 50 85 50 85 C 50 85 90 60 90 30 A 20 20 0 0 0 50 30 Z" fill="#FF4B4B"/><path d="M 22 25 A 12 12 0 0 1 35 15" fill="none" stroke="#FFC0CB" stroke-width="4" stroke-linecap="round"/>`), cat:'symbols', dx:340, dy:640 },
+    { id:'coffee', name:'咖啡', src: createCustomSVG(`<path d="M 25 30 L 25 70 C 25 85 75 85 75 70 L 75 30 Z" fill="#FFE082"/><path d="M 75 40 C 95 40 95 65 75 65" fill="none" stroke="#FFE082" stroke-width="8" stroke-linecap="round"/><path d="M 35 30 L 65 30" stroke="#8D6E63" stroke-width="6" stroke-linecap="round"/><circle cx="40" cy="55" r="3" fill="#5D4037"/><circle cx="60" cy="55" r="3" fill="#5D4037"/><path d="M 45 60 Q 50 65 55 60" fill="none" stroke="#5D4037" stroke-width="3" stroke-linecap="round"/><path d="M 40 20 Q 35 10 45 5" fill="none" stroke="#BDBDBD" stroke-width="4" stroke-linecap="round"/><path d="M 60 20 Q 55 10 65 5" fill="none" stroke="#BDBDBD" stroke-width="4" stroke-linecap="round"/>`), cat:'food', dx:60, dy:340 },
+    { id:'sparkle', name:'星星', src: createCustomSVG(`<polygon points="50,15 61,35 84,35 66,52 73,75 50,60 27,75 34,52 16,35 39,35" fill="#FFD54F" stroke="#FFB300" stroke-width="3" stroke-linejoin="round"/><circle cx="42" cy="48" r="3" fill="#8D6E63"/><circle cx="58" cy="48" r="3" fill="#8D6E63"/><path d="M 47 54 Q 50 58 53 54" fill="none" stroke="#8D6E63" stroke-width="3" stroke-linecap="round"/>`), cat:'symbols', dx:340, dy:60 },
+    { id:'sakura', name:'櫻花', src: createEmojiSVG('🌸'), cat:'flowers', dx:60, dy:60 },
+    { id:'clover', name:'幸運草', src: createEmojiSVG('🍀'), cat:'plants', dx:620, dy:340 }
+  ];
+
+  // ─── State ───
+  let bgImage = null;
+  let bgPanX = 0, bgPanY = 0;
+  let bgColor = '#EBF3FB';
+  let greetingColor = '#FFFFFF';
+  let fontSize = 52;
+  let fontKey = 'gensenrounded';
+  let textPos = 'mc';
+  const activeStickers = new Set();
+  const stickerImages = {};
+  const stickerState = {};
+  let selectedSticker = null;
+
+  // ─── DOM ───
+  const uploadArea = document.getElementById('upload-area');
+  const uploadInput = document.getElementById('upload-input');
+  const previewThumb = document.getElementById('preview-thumb');
+  const textInput = document.getElementById('text-input');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const btnDownload = document.getElementById('btn-download');
+  const toastEl = document.getElementById('toast');
+  const bannerEl = document.getElementById('greeting-banner');
+
+  // ─── Helpers ───
+  function clearGreetingActive() {
+    document.querySelectorAll('.greeting-btn, .wisdom-btn').forEach(b => b.classList.remove('active'));
+  }
+  function fillBasic(t) { textInput.value = `${t}！\n${getDateTimeStr()}`; draw(); }
+  function fillWisdom(t) { textInput.value = `${t}\n${getDateTimeStr()}`; draw(); } // 移除了「— 一行禪師」後綴
+
+  // ─── Greeting Banner ───
+  (function() {
+    const now = new Date(), hours = now.getHours(), mins = String(now.getMinutes()).padStart(2,'0');
+    const period = hours < 12 ? '上午' : '下午', h12 = hours % 12 || 12;
+    bannerEl.innerHTML = `${getTimeGreeting()}！現在是${period}${h12}點${mins}分<br>為您準備專屬問安圖`;
+  })();
+
+  // ─── Greeting Buttons ───
+  const autoG = getTimeGreeting();
+  BASIC.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'greeting-btn' + (g === autoG ? ' active' : '');
+    btn.textContent = g;
+    btn.addEventListener('click', () => { clearGreetingActive(); btn.classList.add('active'); fillBasic(g); });
+    document.getElementById('basic-row').appendChild(btn);
+  });
+  
+  // 顯示前 10 條
+  DISPLAY_GREETINGS.forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'wisdom-btn';
+    // 截斷過長文字在按鈕上的顯示
+    btn.textContent = w.length > 8 ? w.substring(0, 8) + '...' : w;
+    btn.title = w;
+    btn.addEventListener('click', () => { clearGreetingActive(); btn.classList.add('active'); fillWisdom(w); });
+    document.getElementById('wisdom-row').appendChild(btn);
+  });
+  
+  // 隨機產生按鈕 (從全部 34 條隨機抽)
+  (function() {
+    const btn = document.createElement('button');
+    btn.className = 'wisdom-btn random-btn';
+    btn.textContent = '隨機產生 🎲';
+    btn.addEventListener('click', () => {
+      clearGreetingActive();
+      btn.classList.add('active');
+      fillWisdom(NEW_GREETINGS[Math.floor(Math.random() * NEW_GREETINGS.length)]);
+    });
+    document.getElementById('wisdom-row').appendChild(btn);
+  })();
+  
+  fillBasic(autoG);
+
+  // ─── Sticker Setup ───
+  const stickerGrid = document.getElementById('sticker-grid');
+  const stickerControlsEl = document.getElementById('sticker-controls');
+  const stickerTitleEl = document.getElementById('sticker-controls-title');
+  const sliderX = document.getElementById('sticker-x');
+  const sliderY = document.getElementById('sticker-y');
+  const sliderSize = document.getElementById('sticker-size');
+
+  function selectStickerControls(id) {
+    if (!id || !activeStickers.has(id)) {
+      selectedSticker = null;
+      stickerControlsEl.classList.remove('show');
+      return;
+    }
+    selectedSticker = id;
+    const s = STICKERS.find(st => st.id === id);
+    const st = stickerState[id];
+    stickerTitleEl.textContent = `調整「${s.name}」`;
+    sliderX.value = st.x; sliderY.value = st.y; sliderSize.value = st.size;
+    stickerControlsEl.classList.add('show');
+  }
+
+  STICKERS.forEach(s => {
+    const img = new Image();
+    img.src = s.src;
+    img.onload = () => draw();
+    stickerImages[s.id] = img;
+    stickerState[s.id] = { x: s.dx, y: s.dy, size: 130 };
+
+    const wrap = document.createElement('div');
+    wrap.className = 'sticker-item-wrap';
+    const thumb = document.createElement('div');
+    thumb.className = 'sticker-thumb';
+    const thumbImg = document.createElement('img');
+    thumbImg.src = s.src;
+    thumb.appendChild(thumbImg);
+    
+    thumb.addEventListener('click', () => {
+      if (activeStickers.has(s.id)) {
+        activeStickers.delete(s.id);
+        thumb.classList.remove('active');
+        if (selectedSticker === s.id) selectStickerControls(null);
+      } else {
+        activeStickers.add(s.id);
+        thumb.classList.add('active');
+        selectStickerControls(s.id);
+      }
+      draw();
+    });
+    const label = document.createElement('div');
+    label.className = 'sticker-name';
+    label.textContent = s.name;
+    wrap.appendChild(thumb); wrap.appendChild(label);
+    stickerGrid.appendChild(wrap);
+  });
+
+  ['x','y','size'].forEach(attr => {
+    document.getElementById(`sticker-${attr}`).addEventListener('input', (e) => {
+      if (!selectedSticker) return;
+      stickerState[selectedSticker][attr] = parseInt(e.target.value);
+      draw();
+    });
+  });
+
+  // ─── Upload ───
+  uploadArea.addEventListener('click', () => uploadInput.click());
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault(); uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  uploadInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        bgImage = img; bgPanX = 0; bgPanY = 0;
+        previewThumb.src = e.target.result;
+        uploadArea.classList.add('has-image');
+        btnDownload.disabled = false;
+        document.getElementById('bg-pan').classList.add('show');
+        draw();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ─── Background Pan ───
+  document.querySelectorAll('.pan-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!bgImage) return;
+      const dir = btn.dataset.dir;
+      const w = 800, h = 800;
+      const sc = Math.max(w / bgImage.width, h / bgImage.height);
+      const sw = bgImage.width * sc, sh = bgImage.height * sc;
+      const maxX = (sw - w) / 2, maxY = (sh - h) / 2;
+      const step = 40;
+      if (dir === 'up') bgPanY = Math.min(bgPanY + step, maxY);
+      else if (dir === 'down') bgPanY = Math.max(bgPanY - step, -maxY);
+      else if (dir === 'left') bgPanX = Math.min(bgPanX + step, maxX);
+      else if (dir === 'right') bgPanX = Math.max(bgPanX - step, -maxX);
+      else if (dir === 'reset') { bgPanX = 0; bgPanY = 0; }
+      else if (dir === 'top-left') { bgPanX = maxX; bgPanY = maxY; }
+      else if (dir === 'top-right') { bgPanX = -maxX; bgPanY = maxY; }
+      else if (dir === 'bot-left') { bgPanX = maxX; bgPanY = -maxY; }
+      else if (dir === 'bot-right') { bgPanX = -maxX; bgPanY = -maxY; }
+      draw();
+    });
+  });
+
+  // ─── Events (Font, Color, Size, Pos, Text) ───
+  document.querySelectorAll('.font-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fontKey = btn.dataset.font;
+      const fam = FONTS[fontKey].split(',')[0].trim().replace(/"/g,'');
+      try { await document.fonts.load(`bold ${fontSize}px "${fam}"`); } catch(e){}
+      draw();
+    });
+  });
+
+  document.querySelectorAll('.text-color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll('.text-color-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+      greetingColor = dot.dataset.color;
+      draw();
+    });
+  });
+
+  document.querySelectorAll('.bg-color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll('.bg-color-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+      bgColor = dot.dataset.color;
+      draw();
+    });
+  });
+
+  document.querySelectorAll('.size-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fontSize = parseInt(btn.dataset.size); draw();
+    });
+  });
+
+  document.querySelectorAll('.pos-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      textPos = btn.dataset.pos; draw();
+    });
+  });
+
+  textInput.addEventListener('input', draw);
+
+  // ─── Draw Canvas ───
+  function draw() {
+    const w = 800, h = 800;
+    canvas.width = w; canvas.height = h;
+
+    if (bgImage) {
+      const sc = Math.max(w / bgImage.width, h / bgImage.height);
+      const sw = bgImage.width * sc, sh = bgImage.height * sc;
+      ctx.drawImage(bgImage, (w - sw) / 2 + bgPanX, (h - sh) / 2 + bgPanY, sw, sh);
+    } else {
+      ctx.fillStyle = bgColor; // 改為柔和的品牌淺藍底色預設或選取顏色
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    STICKERS.forEach(s => {
+      if (!activeStickers.has(s.id)) return;
+      const img = stickerImages[s.id];
+      const st = stickerState[s.id];
+      if (img.complete) ctx.drawImage(img, st.x, st.y, st.size, st.size);
+    });
+
+    const mainText = textInput.value.trim();
+    const rawLines = [];
+    
+    if (mainText) {
+      mainText.split('\n').forEach(line => {
+        // 若該行開頭有破折號或是日期格式，將其設定為較小字體
+        const isSmall = line.startsWith('—') || line.match(/^\d+月/);
+        rawLines.push({ text: line, small: isSmall });
+      });
+    }
+
+    if (!rawLines.length) return;
+
+    const fontFamily = FONTS[fontKey];
+    const pad = 40;
+    const maxTextWidth = w - pad * 2;
+    
+    // 處理自動換行 (Word Wrap)
+    const wrappedLines = [];
+    rawLines.forEach(lineObj => {
+      const size = lineObj.small ? Math.round(fontSize * 0.6) : fontSize;
+      ctx.font = `bold ${size}px ${fontFamily}`;
+      
+      let currentLine = '';
+      for (let i = 0; i < lineObj.text.length; i++) {
+        const char = lineObj.text[i];
+        const testLine = currentLine + char;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxTextWidth && i > 0) {
+          wrappedLines.push({ text: currentLine, small: lineObj.small });
+          currentLine = char;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      wrappedLines.push({ text: currentLine, small: lineObj.small });
+    });
+
+    const lineH = fontSize * 1.5;
+    const totalH = wrappedLines.length * lineH;
+
+    const col = textPos[1], row = textPos[0];
+    const hAlign = col === 'l' ? 'left' : col === 'r' ? 'right' : 'center';
+    const xPos = col === 'l' ? pad : col === 'r' ? w - pad : w / 2;
+    let startY = row === 't' ? pad + fontSize : row === 'b' ? h - totalH - pad + fontSize : (h - totalH) / 2 + fontSize;
+
+    ctx.textAlign = hAlign;
+    ctx.textBaseline = 'middle';
+
+    wrappedLines.forEach((line, i) => {
+      const y = startY + i * lineH;
+      const size = line.small ? Math.round(fontSize * 0.6) : fontSize;
+      ctx.font = `bold ${size}px ${fontFamily}`;
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = size * 0.12;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(line.text, xPos, y);
+      ctx.fillStyle = greetingColor;
+      ctx.fillText(line.text, xPos, y);
+    });
+  }
+  document.fonts.ready.then(draw);
+
+  // ─── Download ───
+  btnDownload.addEventListener('click', async () => {
+    if (!bgImage) { toast('請先選一張背景照片唷！'); return; }
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    if (/Line\//i.test(navigator.userAgent) || /FBAN|FBAV|Instagram/i.test(navigator.userAgent)) {
+      document.getElementById('save-overlay-img').src = dataUrl;
+      document.getElementById('save-overlay-hint').innerHTML = '👆 長按圖片儲存<br>即可分享給親友';
+      document.getElementById('save-overlay').classList.add('show');
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.download = `問安圖_${new Date().getTime()}.png`;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast('✅ 圖片已成功下載！');
+  });
+
+  document.getElementById('save-overlay-close').addEventListener('click', () => document.getElementById('save-overlay').classList.remove('show'));
+
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
