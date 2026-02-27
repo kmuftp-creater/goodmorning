@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
-  <title>問安圖產生器｜免費線上早安圖製作工具 v0.1.0</title>
+  <title>問安圖產生器｜免費線上早安圖製作工具 v0.1.1</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -477,7 +477,7 @@
     <div class="preview-col">
       <div class="step">
         <div class="step-label">4. 預覽和下載</div>
-        <div class="canvas-hint">💡 提示：點擊下方圖片上的文字、貼圖或背景，可直接拖拉移動，或拖曳右下角藍點縮放大小！</div>
+        <div class="canvas-hint">💡 提示：點擊圖片上的文字、貼圖或背景，可直接拖拉移動，或使用右下角藍點 / 手機雙指縮放大小！</div>
         <div class="preview-wrap" id="preview-wrap">
           <canvas id="canvas" width="1080" height="1080"></canvas>
         </div>
@@ -495,7 +495,7 @@
       </div>
 
       <div class="footer-inline">
-        <p>v0.1.0 | ©2026 <a href="https://huobest.com/" target="_blank">霍家私塾</a></p>
+        <p>v0.1.1 | ©2026 <a href="https://huobest.com/" target="_blank">霍家私塾</a></p>
       </div>
     </div><!-- /.preview-col -->
 
@@ -589,10 +589,17 @@
   
   let hitBoxes = []; // 用於記錄畫面上的元件點擊範圍
   let selectedItem = null; // { type: 'text' } or { type: 'sticker', id: 'lotus' } or { type: 'bg' }
+  
+  // Single pointer state
   let isDragging = false;
   let isResizing = false;
   let startX, startY;
   let startObjX, startObjY, startObjW, startObjSize;
+
+  // Multi-pointer (Pinch-to-zoom) state
+  const pointerCache = new Map();
+  let initialPinchDist = -1;
+  let initialPinchObjSize = -1;
 
   // ─── DOM ───
   const uploadArea = document.getElementById('upload-area');
@@ -818,98 +825,155 @@
 
   canvas.addEventListener('pointerdown', (e) => {
     document.activeElement.blur(); // 隱藏手機鍵盤
+    canvas.setPointerCapture(e.pointerId); // 捕獲指標，確保滑出邊界仍能追蹤
+    pointerCache.set(e.pointerId, getPointerPos(e));
+    
     const pos = getPointerPos(e);
-    
-    // 反向迴圈，優先選擇最上層(最後繪製)的物件或控制點
-    for (let i = hitBoxes.length - 1; i >= 0; i--) {
-      const b = hitBoxes[i];
-      if (pos.x >= b.x && pos.x <= b.x + b.w && pos.y >= b.y && pos.y <= b.y + b.h) {
-        selectedItem = { type: b.type, id: b.id };
-        startX = pos.x;
-        startY = pos.y;
-        
-        if (b.isHandle) {
-          isResizing = true;
-          if (b.type === 'text') startObjSize = textState.fontSize;
-          else if (b.type === 'sticker') startObjSize = stickerState[b.id].size;
-          else if (b.type === 'bg') startObjW = bgState.w;
-        } else {
-          isDragging = true;
-          if (b.type === 'text') {
-            startObjX = textState.x;
-            startObjY = textState.y;
-          } else if (b.type === 'sticker') {
-            startObjX = stickerState[b.id].x;
-            startObjY = stickerState[b.id].y;
-          } else if (b.type === 'bg') {
-            startObjX = bgState.x;
-            startObjY = bgState.y;
-          }
-        }
-        e.preventDefault(); // 防止手機畫面捲動
-        draw();
-        return;
-      }
-    }
-    
-    // 點擊空白處取消選取
-    selectedItem = null;
-    draw();
-  });
 
-  canvas.addEventListener('pointermove', (e) => {
-    const pos = getPointerPos(e);
-    
-    // 更新滑鼠游標圖示
-    if (!isDragging && !isResizing) {
-      let hoverHandle = false;
-      let hoverBody = false;
+    // 如果有兩指以上按下，且目前有選取物件，進入雙指縮放模式
+    if (pointerCache.size >= 2 && selectedItem) {
+      isDragging = false; // 取消單指拖曳
+      isResizing = false;
+      const pts = Array.from(pointerCache.values());
+      initialPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      
+      // 記錄開始縮放前的物件大小
+      if (selectedItem.type === 'text') initialPinchObjSize = textState.fontSize;
+      else if (selectedItem.type === 'sticker') initialPinchObjSize = stickerState[selectedItem.id].size;
+      else if (selectedItem.type === 'bg') initialPinchObjSize = bgState.w;
+      return;
+    }
+
+    // 單指點擊邏輯
+    if (pointerCache.size === 1) {
+      let found = false;
+      // 反向迴圈，優先選擇最上層(最後繪製)的物件或控制點
       for (let i = hitBoxes.length - 1; i >= 0; i--) {
         const b = hitBoxes[i];
         if (pos.x >= b.x && pos.x <= b.x + b.w && pos.y >= b.y && pos.y <= b.y + b.h) {
-          if (b.isHandle) hoverHandle = true;
-          else hoverBody = true;
+          selectedItem = { type: b.type, id: b.id };
+          startX = pos.x;
+          startY = pos.y;
+          
+          if (b.isHandle) {
+            isResizing = true;
+            if (b.type === 'text') startObjSize = textState.fontSize;
+            else if (b.type === 'sticker') startObjSize = stickerState[b.id].size;
+            else if (b.type === 'bg') startObjW = bgState.w;
+          } else {
+            isDragging = true;
+            if (b.type === 'text') {
+              startObjX = textState.x;
+              startObjY = textState.y;
+            } else if (b.type === 'sticker') {
+              startObjX = stickerState[b.id].x;
+              startObjY = stickerState[b.id].y;
+            } else if (b.type === 'bg') {
+              startObjX = bgState.x;
+              startObjY = bgState.y;
+            }
+          }
+          e.preventDefault(); // 防止手機畫面捲動
+          draw();
+          found = true;
           break;
         }
       }
-      canvas.style.cursor = hoverHandle ? 'nwse-resize' : (hoverBody ? 'move' : 'default');
-    }
-
-    // 處理拖曳或縮放
-    if (!isDragging && !isResizing) return;
-    const dx = pos.x - startX;
-    const dy = pos.y - startY;
-
-    if (isDragging) {
-      if (selectedItem.type === 'text') {
-        textState.x = startObjX + dx;
-        textState.y = startObjY + dy;
-      } else if (selectedItem.type === 'sticker') {
-        stickerState[selectedItem.id].x = startObjX + dx;
-        stickerState[selectedItem.id].y = startObjY + dy;
-      } else if (selectedItem.type === 'bg') {
-        bgState.x = startObjX + dx;
-        bgState.y = startObjY + dy;
+      
+      // 點擊空白處取消選取
+      if (!found) {
+        selectedItem = null;
+        draw();
       }
-    } else if (isResizing) {
-      const delta = Math.max(dx, dy); // 以較大位移作為縮放比例
+    }
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!pointerCache.has(e.pointerId)) return; // 忽略未記錄的指標
+    pointerCache.set(e.pointerId, getPointerPos(e));
+    const pos = getPointerPos(e);
+    
+    // 雙指縮放邏輯
+    if (pointerCache.size >= 2 && selectedItem && initialPinchDist > 0) {
+      const pts = Array.from(pointerCache.values());
+      const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const scale = currentDist / initialPinchDist;
+
       if (selectedItem.type === 'text') {
-        textState.fontSize = Math.max(16, Math.min(250, startObjSize + delta * 0.4));
+        textState.fontSize = Math.max(16, Math.min(300, initialPinchObjSize * scale));
       } else if (selectedItem.type === 'sticker') {
-        stickerState[selectedItem.id].size = Math.max(40, Math.min(1000, startObjSize + delta));
+        stickerState[selectedItem.id].size = Math.max(40, Math.min(1200, initialPinchObjSize * scale));
       } else if (selectedItem.type === 'bg') {
         const aspect = bgState.w / bgState.h;
-        bgState.w = Math.max(50, startObjW + delta);
+        bgState.w = Math.max(50, initialPinchObjSize * scale);
         bgState.h = bgState.w / aspect;
       }
+      draw();
+      return;
     }
-    draw();
+
+    // 單指拖曳/滑鼠游標更新邏輯
+    if (pointerCache.size === 1) {
+      // 更新滑鼠游標圖示
+      if (!isDragging && !isResizing) {
+        let hoverHandle = false;
+        let hoverBody = false;
+        for (let i = hitBoxes.length - 1; i >= 0; i--) {
+          const b = hitBoxes[i];
+          if (pos.x >= b.x && pos.x <= b.x + b.w && pos.y >= b.y && pos.y <= b.y + b.h) {
+            if (b.isHandle) hoverHandle = true;
+            else hoverBody = true;
+            break;
+          }
+        }
+        canvas.style.cursor = hoverHandle ? 'nwse-resize' : (hoverBody ? 'move' : 'default');
+      }
+
+      // 處理拖曳或控制點縮放
+      if (!isDragging && !isResizing) return;
+      const dx = pos.x - startX;
+      const dy = pos.y - startY;
+
+      if (isDragging) {
+        if (selectedItem.type === 'text') {
+          textState.x = startObjX + dx;
+          textState.y = startObjY + dy;
+        } else if (selectedItem.type === 'sticker') {
+          stickerState[selectedItem.id].x = startObjX + dx;
+          stickerState[selectedItem.id].y = startObjY + dy;
+        } else if (selectedItem.type === 'bg') {
+          bgState.x = startObjX + dx;
+          bgState.y = startObjY + dy;
+        }
+      } else if (isResizing) {
+        const delta = Math.max(dx, dy); // 以較大位移作為縮放比例
+        if (selectedItem.type === 'text') {
+          textState.fontSize = Math.max(16, Math.min(300, startObjSize + delta * 0.4));
+        } else if (selectedItem.type === 'sticker') {
+          stickerState[selectedItem.id].size = Math.max(40, Math.min(1200, startObjSize + delta));
+        } else if (selectedItem.type === 'bg') {
+          const aspect = bgState.w / bgState.h;
+          bgState.w = Math.max(50, startObjW + delta);
+          bgState.h = bgState.w / aspect;
+        }
+      }
+      draw();
+    }
   });
 
-  window.addEventListener('pointerup', () => {
-    isDragging = false;
-    isResizing = false;
-  });
+  const handlePointerUp = (e) => {
+    pointerCache.delete(e.pointerId);
+    if (pointerCache.size < 2) {
+      initialPinchDist = -1; // 解除雙指縮放鎖定
+    }
+    if (pointerCache.size === 0) {
+      isDragging = false;
+      isResizing = false;
+    }
+  };
+
+  canvas.addEventListener('pointerup', handlePointerUp);
+  canvas.addEventListener('pointercancel', handlePointerUp);
 
   // ─── Draw Canvas ───
   function draw() {
